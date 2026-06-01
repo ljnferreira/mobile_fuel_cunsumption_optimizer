@@ -15,6 +15,7 @@ import {
   type AbastecimentoItem 
 } from '../../src/services/abastecimentoService';
 import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
+import UserGreeting from '../../components/UserGreeting';
 
 
 export default function TelaRelatorios() {
@@ -88,6 +89,7 @@ export default function TelaRelatorios() {
 
   return (
     <View style={styles.container}>
+      <UserGreeting />
       <Text style={styles.cabecalho}>Análise de Dados & Eficiência</Text>
 
       <View style={styles.secaoFiltro}>

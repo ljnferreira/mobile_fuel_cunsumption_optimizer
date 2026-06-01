@@ -13,6 +13,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
 import { AbastecimentoService } from '../../src/services/abastecimentoService';
+import UserGreeting from '../../components/UserGreeting';
 
 
 export default function TelaBomba() {
@@ -151,6 +152,7 @@ export default function TelaBomba() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <UserGreeting />
       <Text style={styles.titulo}>Posto Digital - Tomada de Decisão</Text>
 
       {/* Seletor do Veículo Corrente */}

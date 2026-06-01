@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
 import VeiculoForm from '../../components/VeiculoForm';
+import UserGreeting from '../../components/UserGreeting';
 
 
 export default function TelaVeiculos() {
@@ -55,6 +56,7 @@ export default function TelaVeiculos() {
 
   return (
     <View style={styles.container}>
+      <UserGreeting />
       <Text style={styles.cabecalho}>Garagem Virtual (1 a N Carros)</Text>
       
       {/* Formulário de Cadastro */}
