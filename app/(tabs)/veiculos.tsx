@@ -1,23 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  StyleSheet, 
-  Alert,
-  Keyboard
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
+import VeiculoForm from '../../components/VeiculoForm';
 
 
 export default function TelaVeiculos() {
-  // Estados do formulário
-  const [nome, setNome] = useState('');
-  const [capacidade, setCapacidade] = useState('');
-  const [odometro, setOdometro] = useState('');
-  
   // Estado da lista
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
 
@@ -31,33 +18,17 @@ export default function TelaVeiculos() {
     carregarVeiculos();
   }, []);
 
-  // Adicionar novo veículo no SQLite
-  const cadastrarVeiculo = () => {
-    if (!nome.trim() || !capacidade || !odometro) {
-      Alert.alert("Atenção", "Preencha todos os campos para cadastrar o veículo.");
-      return;
-    }
+  const cadastrarVeiculo = (nome: string, capacidade: number, odometro: number): boolean => {
+    const resultado = VeiculoService.cadastrar(nome, capacidade, odometro);
 
-    const capTanque = parseFloat(capacidade);
-    const odomInicial = parseFloat(odometro);
-
-    const resultado = VeiculoService.cadastrar(nome, capTanque, odomInicial);
-    
     if (!resultado.sucesso) {
-      Alert.alert("Erro", resultado.erro || "Não foi possível salvar o veículo no banco offline.");
-      return;
+      Alert.alert('Erro', resultado.erro || 'Não foi possível salvar o veículo no banco offline.');
+      return false;
     }
 
-      Alert.alert("Sucesso", `${nome} cadastrado com sucesso!`);
-      
-      // Limpar campos e fechar teclado
-      setNome('');
-      setCapacidade('');
-      setOdometro('');
-      Keyboard.dismiss();
-      
-      // Atualizar a lista local
-      carregarVeiculos();
+    Alert.alert('Sucesso', `${nome} cadastrado com sucesso!`);
+    carregarVeiculos();
+    return true;
   };
 
   return (
@@ -65,37 +36,11 @@ export default function TelaVeiculos() {
       <Text style={styles.cabecalho}>Garagem Virtual (1 a N Carros)</Text>
       
       {/* Formulário de Cadastro */}
-      <View style={styles.cardFormulario}>
-        <Text style={styles.subtitulo}>Cadastrar Novo Veículo Flex</Text>
-        
-        <TextInput 
-          placeholder="Ex: Fiat Idea, Honda City, Cobalt..." 
-          value={nome} 
-          onChangeText={setNome} 
-          style={styles.input} 
-        />
-        
-        <View style={styles.row}>
-          <TextInput 
-            placeholder="Capacidade Tanque (L)" 
-            keyboardType="numeric" 
-            value={capacidade} 
-            onChangeText={setCapacidade} 
-            style={[styles.input, styles.inputMetade]} 
-          />
-          <TextInput 
-            placeholder="Odômetro Atual (KM)" 
-            keyboardType="numeric" 
-            value={odometro} 
-            onChangeText={setOdometro} 
-            style={[styles.input, styles.inputMetade]} 
-          />
-        </View>
-
-        <TouchableOpacity style={styles.botao} onPress={cadastrarVeiculo}>
-          <Text style={styles.textoBotao}>Salvar Veículo Offline</Text>
-        </TouchableOpacity>
-      </View>
+      <VeiculoForm
+        title="Cadastrar Novo Veículo Flex"
+        submitLabel="Salvar Veículo Offline"
+        onSubmit={cadastrarVeiculo}
+      />
 
       {/* Lista de Veículos Cadastrados */}
       <Text style={styles.tituloLista}>Seus Veículos Cadastrados</Text>
