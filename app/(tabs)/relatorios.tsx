@@ -3,7 +3,9 @@ import {
   View, 
   Text, 
   FlatList, 
-  StyleSheet 
+  StyleSheet, 
+  TouchableOpacity, 
+  Alert
 } from 'react-native';
 import { useFocusEffect } from 'expo-router'; // Gancho nativo do Expo Router
 import { 
@@ -32,6 +34,27 @@ export default function TelaRelatorios() {
       carregarDadosAnaliticos();
     }, [])
   );
+
+  const confirmarExclusao = (id: number) => {
+    Alert.alert(
+      'Excluir abastecimento',
+      'Deseja realmente excluir este abastecimento? Esta ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => excluirAbastecimento(id) }
+      ]
+    );
+  };
+
+  const excluirAbastecimento = (id: number) => {
+    const resultado = AbastecimentoService.deletar(id);
+    if (!resultado.sucesso) {
+      Alert.alert('Erro', resultado.erro || 'Falha ao excluir o abastecimento.');
+      return;
+    }
+
+    carregarDadosAnaliticos();
+  };
 
   const obterMetrica = (tipo: 'ETANOL' | 'GASOLINA') => {
     const item = metricas.find(m => m.tipo_combustivel === tipo);
@@ -112,14 +135,20 @@ export default function TelaRelatorios() {
             </View>
             
             <View style={styles.linhaRodape}>
-              <Text style={styles.custoTotalItem}>
-                Total Pago: R$ {(item.litros_abastecidos * item.preco_por_litro).toFixed(2)}
-              </Text>
-              {item.tanque_cheio === 1 && (
-                <Text style={styles.consumoRealItem}>
-                  Rendimento: {(item.distancia_percorrida / item.litros_abastecidos).toFixed(2)} km/L
+              <View>
+                <Text style={styles.custoTotalItem}>
+                  Total Pago: R$ {(item.litros_abastecidos * item.preco_por_litro).toFixed(2)}
                 </Text>
-              )}
+                {item.tanque_cheio === 1 && (
+                  <Text style={styles.consumoRealItem}>
+                    Rendimento: {(item.distancia_percorrida / item.litros_abastecidos).toFixed(2)} km/L
+                  </Text>
+                )}
+              </View>
+
+              <TouchableOpacity style={styles.botaoExcluir} onPress={() => confirmarExclusao(item.id)}>
+                <Text style={styles.textoBotaoExcluir}>Excluir</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -169,6 +198,8 @@ const styles = StyleSheet.create({
   dataText: { fontSize: 12, color: '#8e8e93', marginTop: 2 },
   custoTotalItem: { fontSize: 13, fontWeight: 'bold', color: '#1c1c1e' },
   consumoRealItem: { fontSize: 13, fontWeight: 'bold', color: '#34c759' },
+  botaoExcluir: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ff3b30', borderRadius: 8, alignSelf: 'flex-start' },
+  textoBotaoExcluir: { color: '#fff', fontSize: 12, fontWeight: '700' },
   containerVazio: { padding: 30, alignItems: 'center' },
   textoVazio: { fontSize: 16, fontWeight: 'bold', color: '#8e8e93' },
   subtextoVazio: { fontSize: 13, color: '#8e8e93', textAlign: 'center', marginTop: 6, lineHeight: 18 }
