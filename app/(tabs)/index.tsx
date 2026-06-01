@@ -11,15 +11,9 @@ import {
   Switch
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { db } from '../../src/database/database';
-import { predizerConsumoKmL } from '../../src/domain/inteligencia';
+import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
+import { AbastecimentoService } from '../../src/services/abastecimentoService';
 
-interface Veiculo {
-  id: number;
-  nome: string;
-  capacidade_tanque: number;
-  odometro_inicial: number;
-}
 
 export default function TelaBomba() {
   // Estados de inputs da bomba
@@ -42,14 +36,10 @@ export default function TelaBomba() {
 
   // Carrega a lista de veículos
   const carregarVeiculos = () => {
-    try {
-      const dados = db.getAllSync<Veiculo>('SELECT * FROM veiculos ORDER BY nome ASC;');
-      setVeiculos(dados);
-      if (dados.length > 0) {
-        setVeiculoSelecionadoId(dados[0].id.toString());
-      }
-    } catch (error) {
-      console.error(error);
+    const dados = VeiculoService.carregarTodos();
+    setVeiculos(dados);
+    if (dados.length > 0) {
+      setVeiculoSelecionadoId(dados[0].id.toString());
     }
   };
 
@@ -61,50 +51,14 @@ export default function TelaBomba() {
   const calcularConsumoAutomatico = (carroId: string) => {
     if (!carroId) return;
 
-    try {
-      const idVeiculo = parseInt(carroId, 10);
-
-      // Inicializa as médias a partir dos registros de tanque cheio (fallback para valores padrão)
-      const queryMedia = `
-        SELECT tipo_combustivel,
-               AVG(distancia_percorrida / litros_abastecidos) AS media
-        FROM abastecimentos
-        WHERE veiculo_id = ? AND tanque_cheio = 1
-        GROUP BY tipo_combustivel;
-      `;
-
-      const medias = db.getAllSync<{ tipo_combustivel: string; media: number }>(queryMedia, [idVeiculo]);
-      const mediaEtanolBD = medias.find(m => m.tipo_combustivel === 'ETANOL')?.media;
-      const mediaGasolinaBD = medias.find(m => m.tipo_combustivel === 'GASOLINA')?.media;
-
-      setMediaEtanol(mediaEtanolBD ? mediaEtanolBD.toFixed(2) : '7.5');
-      setMediaGasolina(mediaGasolinaBD ? mediaGasolinaBD.toFixed(2) : '10.5');
-      setUsandoIA(false);
-
-      // Busca histórico filtrando APENAS por registros com Tanque Cheio (Pureza dos dados)
-      const queryHistorico = `
-        SELECT distancia_percorrida, litros_abastecidos
-        FROM abastecimentos
-        WHERE veiculo_id = ? AND tipo_combustivel = ? AND tanque_cheio = 1;
-      `;
-
-      const histEtanol = db.getAllSync<{ distancia_percorrida: number, litros_abastecidos: number }>(queryHistorico, [idVeiculo, 'ETANOL']);
-      const histGasolina = db.getAllSync<{ distancia_percorrida: number, litros_abastecidos: number }>(queryHistorico, [idVeiculo, 'GASOLINA']);
-
-      const nEtanol = histEtanol.map(h => ({ distanciaPercorrida: h.distancia_percorrida, litrosAbastecidos: h.litros_abastecidos }));
-      const nGasolina = histGasolina.map(h => ({ distanciaPercorrida: h.distancia_percorrida, litrosAbastecidos: h.litros_abastecidos }));
-
-      const predicaoEtanol = predizerConsumoKmL(nEtanol);
-      const predicaoGasolina = predizerConsumoKmL(nGasolina);
-
-      if (predicaoEtanol > 0 && predicaoGasolina > 0) {
-        setMediaEtanol(predicaoEtanol.toFixed(2));
-        setMediaGasolina(predicaoGasolina.toFixed(2));
-        setUsandoIA(true);
-      }
-    } catch (error) {
-      console.error("Erro ao processar médias automáticas:", error);
-    }
+    const idVeiculo = parseInt(carroId, 10);
+    
+    // Obtém consumo otimizado da IA
+    const consumoOtimizado = AbastecimentoService.calcularConsumoOtimizadoPorIA(idVeiculo);
+    
+    setMediaEtanol(consumoOtimizado.etanol.toFixed(2));
+    setMediaGasolina(consumoOtimizado.gasolina.toFixed(2));
+    setUsandoIA(consumoOtimizado.ativeIA);
   };
 
   // Dispara o cálculo automático toda vez que o ID do veículo selecionado mudar
@@ -121,18 +75,17 @@ export default function TelaBomba() {
       return;
     }
 
-    const pEtanol = parseFloat(precoEtanol);
-    const pGasolina = parseFloat(precoGasolina);
-    const cEtanol = parseFloat(mediaEtanol);
-    const cGasolina = parseFloat(mediaGasolina);
+    const analise = AbastecimentoService.analisarCombustivel(
+      parseFloat(precoEtanol),
+      parseFloat(precoGasolina),
+      parseFloat(mediaEtanol),
+      parseFloat(mediaGasolina)
+    );
 
-    const custoEtanol = pEtanol / cEtanol;
-    const custoGasolina = pGasolina / cGasolina;
-
-    if (custoEtanol < custoGasolina) {
-      setResultadoDecisao(`Abasteça com ETANOL!\nCusto previsto: R$ ${custoEtanol.toFixed(2)}/km\nMédia aplicada: ${cEtanol.toFixed(1)} km/L.`);
+    if (analise.melhorOpcao === 'ETANOL') {
+      setResultadoDecisao(`Abasteça com ETANOL!\nCusto previsto: R$ ${analise.custoEtanol.toFixed(2)}/km\nMédia aplicada: ${parseFloat(mediaEtanol).toFixed(1)} km/L.`);
     } else {
-      setResultadoDecisao(`Abasteça com GASOLINA!\nCusto previsto: R$ ${custoGasolina.toFixed(2)}/km\nMédia aplicada: ${cGasolina.toFixed(1)} km/L.`);
+      setResultadoDecisao(`Abasteça com GASOLINA!\nCusto previsto: R$ ${analise.custoGasolina.toFixed(2)}/km\nMédia aplicada: ${parseFloat(mediaGasolina).toFixed(1)} km/L.`);
     }
     Keyboard.dismiss();
   };
@@ -154,33 +107,29 @@ export default function TelaBomba() {
       return;
     }
 
-    try {
-      const ultimoAbast = db.getFirstSync<{ odometro_atual: number }>(
-        'SELECT odometro_atual FROM abastecimentos WHERE veiculo_id = ? ORDER BY id DESC LIMIT 1;',
-        [idVeiculo]
-      );
+    // Calcula a distância percorrida
+    const resultDistancia = AbastecimentoService.calcularDistancia(idVeiculo, kmAtual);
+    
+    if (resultDistancia.erro) {
+      Alert.alert("Erro de Consistência", resultDistancia.erro);
+      return;
+    }
 
-      let distanciaPercorrida = 0;
-      if (ultimoAbast) {
-        distanciaPercorrida = kmAtual - ultimoAbast.odometro_atual;
-      } else {
-        const carro = db.getFirstSync<{ odometro_inicial: number }>('SELECT odometro_inicial FROM veiculos WHERE id = ?;', [idVeiculo]);
-        distanciaPercorrida = kmAtual - (carro?.odometro_inicial || 0);
-      }
-
-      if (distanciaPercorrida <= 0) {
-        Alert.alert("Erro de Consistência", "A quilometragem atual deve ser maior que a anterior.");
-        return;
-      }
-
-      const dataHoje = new Date().toLocaleDateString('pt-BR');
-      const tCheioInt = isTanqueCheio ? 1 : 0;
-
-      db.runSync(
-        `INSERT INTO abastecimentos (veiculo_id, tipo_combustivel, odometro_atual, distancia_percorrida, litros_abastecidos, preco_por_litro, data_registro, tanque_cheio)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
-        [idVeiculo, combustivelAbastecido, kmAtual, distanciaPercorrida, litros, preco, dataHoje, tCheioInt]
-      );
+    // Salva o abastecimento
+    const resultado = AbastecimentoService.salvarAbastecimento({
+      veiculoId: idVeiculo,
+      tipoCombustivel: combustivelAbastecido,
+      odometroAtual: kmAtual,
+      distanciaPercorrida: resultDistancia.distancia,
+      litrosAbastecidos: litros,
+      precoPorLitro: preco,
+      tanqueCheio: isTanqueCheio,
+    });
+    
+    if (!resultado.sucesso) {
+      Alert.alert("Erro", resultado.erro || "Falha ao persistir dados.");
+      return;
+    }
 
       Alert.alert("Sucesso", "Abastecimento salvo com sucesso!");
       setOdometroAtual('');
@@ -188,10 +137,6 @@ export default function TelaBomba() {
       
       // Força a atualização das médias imediatamente após salvar o novo ponto
       calcularConsumoAutomatico(veiculoSelecionadoId);
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Erro", "Falha ao persistir dados.");
-    }
   };
 
   return (

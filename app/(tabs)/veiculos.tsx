@@ -9,14 +9,8 @@ import {
   Alert,
   Keyboard
 } from 'react-native';
-import { db } from '../../src/database/database';
+import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
 
-interface Veiculo {
-  id: number;
-  nome: string;
-  capacidade_tanque: number;
-  odometro_inicial: number;
-}
 
 export default function TelaVeiculos() {
   // Estados do formulário
@@ -29,12 +23,8 @@ export default function TelaVeiculos() {
 
   // Carregar veículos do banco local assim que a tela abrir
   const carregarVeiculos = () => {
-    try {
-      const resultados = db.getAllSync<Veiculo>('SELECT * FROM veiculos ORDER BY id DESC;');
-      setVeiculos(resultados);
-    } catch (error) {
-      console.error("Erro ao buscar veículos:", error);
-    }
+    const veiculosCarregados = VeiculoService.carregarTodos();
+    setVeiculos(veiculosCarregados);
   };
 
   useEffect(() => {
@@ -51,11 +41,12 @@ export default function TelaVeiculos() {
     const capTanque = parseFloat(capacidade);
     const odomInicial = parseFloat(odometro);
 
-    try {
-      db.runSync(
-        'INSERT INTO veiculos (nome, capacidade_tanque, odometro_inicial) VALUES (?, ?, ?);',
-        [nome, capTanque, odomInicial]
-      );
+    const resultado = VeiculoService.cadastrar(nome, capTanque, odomInicial);
+    
+    if (!resultado.sucesso) {
+      Alert.alert("Erro", resultado.erro || "Não foi possível salvar o veículo no banco offline.");
+      return;
+    }
 
       Alert.alert("Sucesso", `${nome} cadastrado com sucesso!`);
       
@@ -67,10 +58,6 @@ export default function TelaVeiculos() {
       
       // Atualizar a lista local
       carregarVeiculos();
-    } catch (error) {
-      console.error("Erro ao inserir veículo:", error);
-      Alert.alert("Erro", "Não foi possível salvar o veículo no banco offline.");
-    }
   };
 
   return (
