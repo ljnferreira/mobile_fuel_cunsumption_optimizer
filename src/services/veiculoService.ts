@@ -1,42 +1,20 @@
-import { db } from '../database/database';
-
-export interface Veiculo {
-  id: number;
-  nome: string;
-  capacidade_tanque: number;
-  odometro_inicial: number;
-}
+import { VeiculoRepository } from '../repositories/VeiculoRepository';
+import type { Veiculo } from '../models';
+export type { Veiculo } from '../models';
 
 export class VeiculoService {
   /**
    * Carrega todos os veículos do banco de dados
    */
   static carregarTodos(): Veiculo[] {
-    try {
-      const veiculos = db.getAllSync<Veiculo>(
-        'SELECT * FROM veiculos ORDER BY nome ASC;'
-      );
-      return veiculos;
-    } catch (error) {
-      console.error('Erro ao carregar veículos:', error);
-      return [];
-    }
+    return VeiculoRepository.findAll();
   }
 
   /**
    * Carrega um veículo específico por ID
    */
   static carregarPorId(id: number): Veiculo | null {
-    try {
-      const veiculo = db.getFirstSync<Veiculo>(
-        'SELECT * FROM veiculos WHERE id = ?;',
-        [id]
-      );
-      return veiculo || null;
-    } catch (error) {
-      console.error('Erro ao carregar veículo:', error);
-      return null;
-    }
+    return VeiculoRepository.findById(id);
   }
 
   /**
@@ -46,30 +24,25 @@ export class VeiculoService {
     nome: string,
     capacidadeTanque: number,
     odometroInicial: number
-  ): { sucesso: boolean; id?: number; erro?: string } {
-    try {
-      if (!nome.trim()) {
-        return { sucesso: false, erro: 'Nome do veículo é obrigatório' };
-      }
+  ): { sucesso: boolean; erro?: string } {
+    if (!nome.trim()) {
+      return { sucesso: false, erro: 'Nome do veículo é obrigatório' };
+    }
 
-      if (capacidadeTanque <= 0) {
-        return { sucesso: false, erro: 'Capacidade do tanque deve ser maior que 0' };
-      }
+    if (capacidadeTanque <= 0) {
+      return { sucesso: false, erro: 'Capacidade do tanque deve ser maior que 0' };
+    }
 
-      if (odometroInicial < 0) {
-        return { sucesso: false, erro: 'Odômetro não pode ser negativo' };
-      }
+    if (odometroInicial < 0) {
+      return { sucesso: false, erro: 'Odômetro não pode ser negativo' };
+    }
 
-      db.runSync(
-        'INSERT INTO veiculos (nome, capacidade_tanque, odometro_inicial) VALUES (?, ?, ?);',
-        [nome.trim(), capacidadeTanque, odometroInicial]
-      );
-
-      return { sucesso: true };
-    } catch (error) {
-      console.error('Erro ao cadastrar veículo:', error);
+    const sucesso = VeiculoRepository.insert(nome, capacidadeTanque, odometroInicial);
+    if (!sucesso) {
       return { sucesso: false, erro: 'Erro ao salvar veículo no banco' };
     }
+
+    return { sucesso: true };
   }
 
   /**
@@ -81,48 +54,34 @@ export class VeiculoService {
     capacidadeTanque: number,
     odometroInicial: number
   ): { sucesso: boolean; erro?: string } {
-    try {
-      if (!nome.trim()) {
-        return { sucesso: false, erro: 'Nome do veículo é obrigatório' };
-      }
+    if (!nome.trim()) {
+      return { sucesso: false, erro: 'Nome do veículo é obrigatório' };
+    }
 
-      db.runSync(
-        'UPDATE veiculos SET nome = ?, capacidade_tanque = ?, odometro_inicial = ? WHERE id = ?;',
-        [nome.trim(), capacidadeTanque, odometroInicial, id]
-      );
-
-      return { sucesso: true };
-    } catch (error) {
-      console.error('Erro ao atualizar veículo:', error);
+    const sucesso = VeiculoRepository.update(id, nome, capacidadeTanque, odometroInicial);
+    if (!sucesso) {
       return { sucesso: false, erro: 'Erro ao atualizar veículo' };
     }
+
+    return { sucesso: true };
   }
 
   /**
    * Deleta um veículo
    */
   static deletar(id: number): { sucesso: boolean; erro?: string } {
-    try {
-      db.runSync('DELETE FROM veiculos WHERE id = ?;', [id]);
-      return { sucesso: true };
-    } catch (error) {
-      console.error('Erro ao deletar veículo:', error);
+    const sucesso = VeiculoRepository.delete(id);
+    if (!sucesso) {
       return { sucesso: false, erro: 'Erro ao deletar veículo' };
     }
+
+    return { sucesso: true };
   }
 
   /**
    * Conta o total de veículos
    */
   static contarTotal(): number {
-    try {
-      const resultado = db.getFirstSync<{ count: number }>(
-        'SELECT COUNT(*) as count FROM veiculos;'
-      );
-      return resultado?.count || 0;
-    } catch (error) {
-      console.error('Erro ao contar veículos:', error);
-      return 0;
-    }
+    return VeiculoRepository.count();
   }
 }
