@@ -1,23 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  StyleSheet, 
-  Alert,
-  Keyboard
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
+import VeiculoForm from '../../components/VeiculoForm';
+import UserGreeting from '../../components/UserGreeting';
 
 
 export default function TelaVeiculos() {
-  // Estados do formulário
-  const [nome, setNome] = useState('');
-  const [capacidade, setCapacidade] = useState('');
-  const [odometro, setOdometro] = useState('');
-  
   // Estado da lista
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
 
@@ -31,71 +19,52 @@ export default function TelaVeiculos() {
     carregarVeiculos();
   }, []);
 
-  // Adicionar novo veículo no SQLite
-  const cadastrarVeiculo = () => {
-    if (!nome.trim() || !capacidade || !odometro) {
-      Alert.alert("Atenção", "Preencha todos os campos para cadastrar o veículo.");
-      return;
-    }
+  const cadastrarVeiculo = (nome: string, capacidade: number, odometro: number): boolean => {
+    const resultado = VeiculoService.cadastrar(nome, capacidade, odometro);
 
-    const capTanque = parseFloat(capacidade);
-    const odomInicial = parseFloat(odometro);
-
-    const resultado = VeiculoService.cadastrar(nome, capTanque, odomInicial);
-    
     if (!resultado.sucesso) {
-      Alert.alert("Erro", resultado.erro || "Não foi possível salvar o veículo no banco offline.");
+      Alert.alert('Erro', resultado.erro || 'Não foi possível salvar o veículo no banco offline.');
+      return false;
+    }
+
+    Alert.alert('Sucesso', `${nome} cadastrado com sucesso!`);
+    carregarVeiculos();
+    return true;
+  };
+
+  const confirmarExclusao = (id: number, nome: string) => {
+    Alert.alert(
+      'Excluir veículo',
+      `Deseja excluir ${nome} e todo o seu histórico? Essa ação não pode ser desfeita.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => excluirVeiculo(id) }
+      ]
+    );
+  };
+
+  const excluirVeiculo = (id: number) => {
+    const resultado = VeiculoService.deletar(id);
+    if (!resultado.sucesso) {
+      Alert.alert('Erro', resultado.erro || 'Não foi possível excluir o veículo.');
       return;
     }
 
-      Alert.alert("Sucesso", `${nome} cadastrado com sucesso!`);
-      
-      // Limpar campos e fechar teclado
-      setNome('');
-      setCapacidade('');
-      setOdometro('');
-      Keyboard.dismiss();
-      
-      // Atualizar a lista local
-      carregarVeiculos();
+    Alert.alert('Sucesso', 'Veículo e histórico excluídos com sucesso.');
+    carregarVeiculos();
   };
 
   return (
     <View style={styles.container}>
+      <UserGreeting />
       <Text style={styles.cabecalho}>Garagem Virtual (1 a N Carros)</Text>
       
       {/* Formulário de Cadastro */}
-      <View style={styles.cardFormulario}>
-        <Text style={styles.subtitulo}>Cadastrar Novo Veículo Flex</Text>
-        
-        <TextInput 
-          placeholder="Ex: Fiat Idea, Honda City, Cobalt..." 
-          value={nome} 
-          onChangeText={setNome} 
-          style={styles.input} 
-        />
-        
-        <View style={styles.row}>
-          <TextInput 
-            placeholder="Capacidade Tanque (L)" 
-            keyboardType="numeric" 
-            value={capacidade} 
-            onChangeText={setCapacidade} 
-            style={[styles.input, styles.inputMetade]} 
-          />
-          <TextInput 
-            placeholder="Odômetro Atual (KM)" 
-            keyboardType="numeric" 
-            value={odometro} 
-            onChangeText={setOdometro} 
-            style={[styles.input, styles.inputMetade]} 
-          />
-        </View>
-
-        <TouchableOpacity style={styles.botao} onPress={cadastrarVeiculo}>
-          <Text style={styles.textoBotao}>Salvar Veículo Offline</Text>
-        </TouchableOpacity>
-      </View>
+      <VeiculoForm
+        title="Cadastrar Novo Veículo Flex"
+        submitLabel="Salvar Veículo Offline"
+        onSubmit={cadastrarVeiculo}
+      />
 
       {/* Lista de Veículos Cadastrados */}
       <Text style={styles.tituloLista}>Seus Veículos Cadastrados</Text>
@@ -109,8 +78,15 @@ export default function TelaVeiculos() {
               <Text style={styles.nomeVeiculo}>{item.nome}</Text>
               <Text style={styles.detalheVeiculo}>Tanque: {item.capacidade_tanque}L | Km Inicial: {item.odometro_inicial} km</Text>
             </View>
-            <View style={styles.badgeFlex}>
-              <Text style={styles.textoBadge}>FLEX</Text>
+            <View style={styles.actionsContainer}>
+              <View style={styles.badgeFlex}>
+                <Text style={styles.textoBadge}>FLEX</Text>
+              </View>
+              {veiculos.length > 1 && (
+                <TouchableOpacity style={styles.botaoExcluir} onPress={() => confirmarExclusao(item.id, item.nome)}>
+                  <Text style={styles.textoExcluir}>Excluir</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}
@@ -136,7 +112,10 @@ const styles = StyleSheet.create({
   cardVeiculo: { backgroundColor: '#fff', padding: 16, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#e5e5ea' },
   nomeVeiculo: { fontSize: 16, fontWeight: 'bold', color: '#1c1c1e' },
   detalheVeiculo: { fontSize: 13, color: '#8e8e93', marginTop: 4 },
-  badgeFlex: { backgroundColor: '#34c759', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  actionsContainer: { alignItems: 'flex-end' },
+  badgeFlex: { backgroundColor: '#34c759', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginBottom: 8 },
   textoBadge: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  botaoExcluir: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ff3b30', borderRadius: 8 },
+  textoExcluir: { color: '#fff', fontWeight: '700', fontSize: 12 },
   listaVazia: { textAlign: 'center', color: '#8e8e93', marginTop: 20, fontSize: 14 }
 });

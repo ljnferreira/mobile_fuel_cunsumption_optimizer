@@ -1,3 +1,8 @@
+export interface Usuario {
+  id: number;
+  nome: string;
+}
+
 export interface Veiculo {
   id: number;
   nome: string;

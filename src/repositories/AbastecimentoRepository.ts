@@ -93,6 +93,30 @@ export class AbastecimentoRepository {
     }
   }
 
+  static findHistoricoCompletoPorVeiculo(veiculoId: number): AbastecimentoItem[] {
+    try {
+      return db.getAllSync<AbastecimentoItem>(
+        `SELECT 
+           a.id,
+           v.nome as carro_nome,
+           a.tipo_combustivel,
+           a.distancia_percorrida,
+           a.litros_abastecidos,
+           a.preco_por_litro,
+           a.data_registro,
+           a.tanque_cheio
+         FROM abastecimentos a
+         JOIN veiculos v ON a.veiculo_id = v.id
+         WHERE a.veiculo_id = ?
+         ORDER BY a.id DESC;`,
+        [veiculoId]
+      );
+    } catch (error) {
+      console.error('Erro ao carregar histórico do veículo:', error);
+      return [];
+    }
+  }
+
   static findMetricasAnaliticas(): RelatorioConsumo[] {
     try {
       return db.getAllSync<RelatorioConsumo>(
@@ -108,6 +132,35 @@ export class AbastecimentoRepository {
     } catch (error) {
       console.error('Erro ao carregar métricas analíticas:', error);
       return [];
+    }
+  }
+
+  static findMetricasAnaliticasPorVeiculo(veiculoId: number): RelatorioConsumo[] {
+    try {
+      return db.getAllSync<RelatorioConsumo>(
+        `SELECT 
+           tipo_combustivel,
+           AVG(distancia_percorrida / litros_abastecidos) as media_km_litro,
+           SUM(litros_abastecidos) as total_litros,
+           SUM(litros_abastecidos * preco_por_litro) as gasto_total
+         FROM abastecimentos
+         WHERE veiculo_id = ? AND tanque_cheio = 1
+         GROUP BY tipo_combustivel;`,
+        [veiculoId]
+      );
+    } catch (error) {
+      console.error('Erro ao carregar métricas analíticas por veículo:', error);
+      return [];
+    }
+  }
+
+  static deleteByVeiculo(veiculoId: number): boolean {
+    try {
+      db.runSync('DELETE FROM abastecimentos WHERE veiculo_id = ?;', [veiculoId]);
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar histórico de abastecimentos do veículo:', error);
+      return false;
     }
   }
 

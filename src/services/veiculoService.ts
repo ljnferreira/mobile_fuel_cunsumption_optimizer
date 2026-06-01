@@ -1,4 +1,5 @@
 import { VeiculoRepository } from '../repositories/VeiculoRepository';
+import { AbastecimentoRepository } from '../repositories/AbastecimentoRepository';
 import type { Veiculo } from '../models';
 export type { Veiculo } from '../models';
 
@@ -70,6 +71,11 @@ export class VeiculoService {
    * Deleta um veículo
    */
   static deletar(id: number): { sucesso: boolean; erro?: string } {
+    const sucessoHistorico = AbastecimentoRepository.deleteByVeiculo(id);
+    if (!sucessoHistorico) {
+      return { sucesso: false, erro: 'Erro ao deletar histórico do veículo' };
+    }
+
     const sucesso = VeiculoRepository.delete(id);
     if (!sucesso) {
       return { sucesso: false, erro: 'Erro ao deletar veículo' };

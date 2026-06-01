@@ -1,11 +1,13 @@
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
-import { inicializarBanco } from "@/src/database/database";
+import { useEffect, useState } from "react";
+import { inicializarBanco } from "../src/database/database";
+import { VeiculoService } from "../src/services/veiculoService";
+import { UsuarioService } from "../src/services/usuarioService";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/components/useColorScheme";
+import { useColorScheme } from "../components/useColorScheme";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -24,6 +26,7 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+  const [initialRouteName, setInitialRouteName] = useState<string | null>(null);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -33,30 +36,35 @@ export default function RootLayout() {
   useEffect(() => {
     try {
       inicializarBanco();
+      const totalVeiculos = VeiculoService.contarTotal();
+      const totalUsuarios = UsuarioService.contarTotal();
+      setInitialRouteName(totalVeiculos === 0 || totalUsuarios === 0 ? 'onboarding' : '(tabs)');
     } catch (error) {
       console.error("Erro na carga inicial do banco offline:", error);
+      setInitialRouteName('(tabs)');
     }
   }, []);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && initialRouteName) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, initialRouteName]);
 
-  if (!loaded) {
+  if (!loaded || !initialRouteName) {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return <RootLayoutNav initialRouteName={initialRouteName} />;
 }
 
-function RootLayoutNav() {
+function RootLayoutNav({ initialRouteName }: { initialRouteName: string }) {
   const colorScheme = useColorScheme();
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack initialRouteName={initialRouteName}>
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>

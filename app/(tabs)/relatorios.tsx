@@ -1,27 +1,38 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   View, 
   Text, 
   FlatList, 
-  StyleSheet 
+  StyleSheet, 
+  TouchableOpacity, 
+  Alert
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from 'expo-router'; // Gancho nativo do Expo Router
 import { 
   AbastecimentoService, 
   type RelatorioConsumo, 
   type AbastecimentoItem 
 } from '../../src/services/abastecimentoService';
+import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
+import UserGreeting from '../../components/UserGreeting';
 
 
 export default function TelaRelatorios() {
+  const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  const [veiculoSelecionadoId, setVeiculoSelecionadoId] = useState<string>('');
   const [metricas, setMetricas] = useState<RelatorioConsumo[]>([]);
   const [historico, setHistorico] = useState<AbastecimentoItem[]>([]);
 
-  const carregarDadosAnaliticos = () => {
-    const metricas = AbastecimentoService.carregarMetricasAnaliticas();
+  const carregarDadosAnaliticos = (veiculoId: number | null) => {
+    const metricas = veiculoId
+      ? AbastecimentoService.carregarMetricasAnaliticasPorVeiculo(veiculoId)
+      : AbastecimentoService.carregarMetricasAnaliticas();
     setMetricas(metricas);
     
-    const historico = AbastecimentoService.carregarHistoricoCompleto();
+    const historico = veiculoId
+      ? AbastecimentoService.carregarHistoricoCompletoPorVeiculo(veiculoId)
+      : AbastecimentoService.carregarHistoricoCompleto();
     setHistorico(historico);
   };
 
@@ -29,9 +40,40 @@ export default function TelaRelatorios() {
   // sempre que o usuário alternar para a aba de relatórios no emulador
   useFocusEffect(
     useCallback(() => {
-      carregarDadosAnaliticos();
+      const veiculosCarregados = VeiculoService.carregarTodos();
+      setVeiculos(veiculosCarregados);
+      const idInicial = veiculosCarregados.length > 0 ? veiculosCarregados[0].id : null;
+      setVeiculoSelecionadoId(idInicial ? idInicial.toString() : '');
+      carregarDadosAnaliticos(idInicial);
     }, [])
   );
+
+  useEffect(() => {
+    if (veiculoSelecionadoId) {
+      carregarDadosAnaliticos(parseInt(veiculoSelecionadoId, 10));
+    }
+  }, [veiculoSelecionadoId]);
+
+  const confirmarExclusao = (id: number) => {
+    Alert.alert(
+      'Excluir abastecimento',
+      'Deseja realmente excluir este abastecimento? Esta ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => excluirAbastecimento(id) }
+      ]
+    );
+  };
+
+  const excluirAbastecimento = (id: number) => {
+    const resultado = AbastecimentoService.deletar(id);
+    if (!resultado.sucesso) {
+      Alert.alert('Erro', resultado.erro || 'Falha ao excluir o abastecimento.');
+      return;
+    }
+
+    carregarDadosAnaliticos(veiculoSelecionadoId ? parseInt(veiculoSelecionadoId, 10) : null);
+  };
 
   const obterMetrica = (tipo: 'ETANOL' | 'GASOLINA') => {
     const item = metricas.find(m => m.tipo_combustivel === tipo);
@@ -47,7 +89,23 @@ export default function TelaRelatorios() {
 
   return (
     <View style={styles.container}>
+      <UserGreeting />
       <Text style={styles.cabecalho}>Análise de Dados & Eficiência</Text>
+
+      <View style={styles.secaoFiltro}>
+        <Text style={styles.rotuloFiltro}>Selecione o veículo</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={veiculoSelecionadoId}
+            onValueChange={(itemValue) => setVeiculoSelecionadoId(itemValue)}
+            style={styles.picker}
+          >
+            {veiculos.map((veiculo) => (
+              <Picker.Item key={veiculo.id} label={veiculo.nome} value={veiculo.id.toString()} />
+            ))}
+          </Picker>
+        </View>
+      </View>
 
       {/* Painel Superior de Indicadores */}
       <View style={styles.containerCards}>
@@ -112,14 +170,20 @@ export default function TelaRelatorios() {
             </View>
             
             <View style={styles.linhaRodape}>
-              <Text style={styles.custoTotalItem}>
-                Total Pago: R$ {(item.litros_abastecidos * item.preco_por_litro).toFixed(2)}
-              </Text>
-              {item.tanque_cheio === 1 && (
-                <Text style={styles.consumoRealItem}>
-                  Rendimento: {(item.distancia_percorrida / item.litros_abastecidos).toFixed(2)} km/L
+              <View>
+                <Text style={styles.custoTotalItem}>
+                  Total Pago: R$ {(item.litros_abastecidos * item.preco_por_litro).toFixed(2)}
                 </Text>
-              )}
+                {item.tanque_cheio === 1 && (
+                  <Text style={styles.consumoRealItem}>
+                    Rendimento: {(item.distancia_percorrida / item.litros_abastecidos).toFixed(2)} km/L
+                  </Text>
+                )}
+              </View>
+
+              <TouchableOpacity style={styles.botaoExcluir} onPress={() => confirmarExclusao(item.id)}>
+                <Text style={styles.textoBotaoExcluir}>Excluir</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -149,6 +213,10 @@ const styles = StyleSheet.create({
   divisor: { height: 1, backgroundColor: '#f2f2f7', marginVertical: 8 },
   subMetrica: { fontSize: 11, color: '#3a3a3c', marginTop: 2 },
   infoNota: { fontSize: 11, color: '#8e8e93', fontStyle: 'italic', marginBottom: 25 },
+  secaoFiltro: { marginBottom: 18 },
+  rotuloFiltro: { fontSize: 14, fontWeight: '600', color: '#3a3a3c', marginBottom: 8 },
+  pickerContainer: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5ea', borderRadius: 10, overflow: 'hidden' },
+  picker: { height: 50, width: '100%' },
   tituloLista: { fontSize: 18, fontWeight: 'bold', color: '#1c1c1e', marginBottom: 12 },
   cardHistorico: { backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e5e5ea' },
   linhaPrincipal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
@@ -169,6 +237,8 @@ const styles = StyleSheet.create({
   dataText: { fontSize: 12, color: '#8e8e93', marginTop: 2 },
   custoTotalItem: { fontSize: 13, fontWeight: 'bold', color: '#1c1c1e' },
   consumoRealItem: { fontSize: 13, fontWeight: 'bold', color: '#34c759' },
+  botaoExcluir: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ff3b30', borderRadius: 8, alignSelf: 'flex-start' },
+  textoBotaoExcluir: { color: '#fff', fontSize: 12, fontWeight: '700' },
   containerVazio: { padding: 30, alignItems: 'center' },
   textoVazio: { fontSize: 16, fontWeight: 'bold', color: '#8e8e93' },
   subtextoVazio: { fontSize: 13, color: '#8e8e93', textAlign: 'center', marginTop: 6, lineHeight: 18 }
