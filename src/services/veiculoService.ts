@@ -24,7 +24,8 @@ export class VeiculoService {
   static cadastrar(
     nome: string,
     capacidadeTanque: number,
-    odometroInicial: number
+    odometroInicial: number,
+    combustivelAtual: 'ETANOL' | 'GASOLINA' = 'GASOLINA'
   ): { sucesso: boolean; erro?: string } {
     if (!nome.trim()) {
       return { sucesso: false, erro: 'Nome do veículo é obrigatório' };
@@ -38,7 +39,7 @@ export class VeiculoService {
       return { sucesso: false, erro: 'Odômetro não pode ser negativo' };
     }
 
-    const sucesso = VeiculoRepository.insert(nome, capacidadeTanque, odometroInicial);
+    const sucesso = VeiculoRepository.insert(nome, capacidadeTanque, odometroInicial, combustivelAtual);
     if (!sucesso) {
       return { sucesso: false, erro: 'Erro ao salvar veículo no banco' };
     }
@@ -62,6 +63,21 @@ export class VeiculoService {
     const sucesso = VeiculoRepository.update(id, nome, capacidadeTanque, odometroInicial);
     if (!sucesso) {
       return { sucesso: false, erro: 'Erro ao atualizar veículo' };
+    }
+
+    return { sucesso: true };
+  }
+
+  /**
+   * Atualiza o combustível atual do veículo
+   */
+  static atualizarCombustivelAtual(
+    id: number,
+    combustivelAtual: 'ETANOL' | 'GASOLINA'
+  ): { sucesso: boolean; erro?: string } {
+    const sucesso = VeiculoRepository.updateCombustivelAtual(id, combustivelAtual);
+    if (!sucesso) {
+      return { sucesso: false, erro: 'Erro ao atualizar combustível do veículo' };
     }
 
     return { sucesso: true };

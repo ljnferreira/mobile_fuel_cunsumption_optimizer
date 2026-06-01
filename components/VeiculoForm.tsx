@@ -4,13 +4,15 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Keyboard } 
 type VeiculoFormProps = {
   title?: string;
   submitLabel: string;
-  onSubmit: (nome: string, capacidade: number, odometro: number) => boolean;
+  onSubmit: (nome: string, capacidade: number, odometro: number, combustivel: 'ETANOL' | 'GASOLINA') => boolean;
+  showFuelSelector?: boolean;
 };
 
-export default function VeiculoForm({ title, submitLabel, onSubmit }: VeiculoFormProps) {
+export default function VeiculoForm({ title, submitLabel, onSubmit, showFuelSelector = true }: VeiculoFormProps) {
   const [nome, setNome] = useState('');
   const [capacidade, setCapacidade] = useState('');
   const [odometro, setOdometro] = useState('');
+  const [combustivel, setCombustivel] = useState<'ETANOL' | 'GASOLINA'>('GASOLINA');
 
   const handleSubmit = () => {
     if (!nome.trim() || !capacidade || !odometro) {
@@ -31,11 +33,12 @@ export default function VeiculoForm({ title, submitLabel, onSubmit }: VeiculoFor
       return;
     }
 
-    const sucesso = onSubmit(nome.trim(), capTanque, odomInicial);
+    const sucesso = onSubmit(nome.trim(), capTanque, odomInicial, combustivel);
     if (sucesso) {
       setNome('');
       setCapacidade('');
       setOdometro('');
+      setCombustivel('GASOLINA');
       Keyboard.dismiss();
     }
   };
@@ -68,6 +71,26 @@ export default function VeiculoForm({ title, submitLabel, onSubmit }: VeiculoFor
         />
       </View>
 
+      {showFuelSelector && (
+        <>
+          <Text style={styles.label}>Combustível atual no tanque:</Text>
+          <View style={styles.rowBotoesCombustivel}>
+            <TouchableOpacity 
+              style={[styles.botaoCombustivel, combustivel === 'ETANOL' && styles.ativoEtanol]} 
+              onPress={() => setCombustivel('ETANOL')}
+            >
+              <Text style={styles.textoBotaoCombustivel}>ETANOL</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.botaoCombustivel, combustivel === 'GASOLINA' && styles.ativoGasolina]} 
+              onPress={() => setCombustivel('GASOLINA')}
+            >
+              <Text style={styles.textoBotaoCombustivel}>GASOLINA</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
       <TouchableOpacity style={styles.botao} onPress={handleSubmit}>
         <Text style={styles.textoBotao}>{submitLabel}</Text>
       </TouchableOpacity>
@@ -93,6 +116,12 @@ const styles = StyleSheet.create({
     color: '#3a3a3c',
     marginBottom: 12,
   },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3a3a3c',
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#e5e5ea',
@@ -108,6 +137,34 @@ const styles = StyleSheet.create({
   },
   inputMetade: {
     width: '48%',
+  },
+  rowBotoesCombustivel: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  botaoCombustivel: {
+    width: '48%',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f7',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e5ea',
+  },
+  ativoEtanol: {
+    backgroundColor: '#e2f7e7',
+    borderColor: '#34c759',
+  },
+  ativoGasolina: {
+    backgroundColor: '#fff9db',
+    borderColor: '#ba9400',
+  },
+  textoBotaoCombustivel: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#1c1c1e',
   },
   botao: {
     backgroundColor: '#007aff',

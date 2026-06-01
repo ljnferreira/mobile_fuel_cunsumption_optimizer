@@ -34,10 +34,10 @@ export class AbastecimentoRepository {
     }
   }
 
-  static findUltimoAbastecimentoPorVeiculo(veiculoId: number): { odometro_atual: number } | null {
+  static findUltimoAbastecimentoPorVeiculo(veiculoId: number): { odometro_atual: number; tipo_combustivel: string } | null {
     try {
-      return db.getFirstSync<{ odometro_atual: number }>(
-        'SELECT odometro_atual FROM abastecimentos WHERE veiculo_id = ? ORDER BY id DESC LIMIT 1;',
+      return db.getFirstSync<{ odometro_atual: number; tipo_combustivel: string }>(
+        'SELECT odometro_atual, tipo_combustivel FROM abastecimentos WHERE veiculo_id = ? ORDER BY id DESC LIMIT 1;',
         [veiculoId]
       ) || null;
     } catch (error) {

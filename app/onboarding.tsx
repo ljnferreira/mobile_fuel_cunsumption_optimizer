@@ -20,7 +20,7 @@ export default function TelaOnboarding() {
     setCarregando(false);
   }, [router]);
 
-  const cadastrarPrimeiroVeiculo = (nome: string, capacidade: number, odometro: number): boolean => {
+  const cadastrarPrimeiroVeiculo = (nome: string, capacidade: number, odometro: number, combustivel: 'ETANOL' | 'GASOLINA'): boolean => {
     if (!nomeUsuario.trim()) {
       Alert.alert('Atenção', 'Informe seu nome ou apelido antes de cadastrar o primeiro veículo.');
       return false;
@@ -32,7 +32,7 @@ export default function TelaOnboarding() {
       return false;
     }
 
-    const resultadoVeiculo = VeiculoService.cadastrar(nome, capacidade, odometro);
+    const resultadoVeiculo = VeiculoService.cadastrar(nome, capacidade, odometro, combustivel);
     if (!resultadoVeiculo.sucesso) {
       Alert.alert('Erro', resultadoVeiculo.erro || 'Não foi possível salvar o veículo.');
       return false;

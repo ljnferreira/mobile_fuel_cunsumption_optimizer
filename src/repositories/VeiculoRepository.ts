@@ -20,11 +20,11 @@ export class VeiculoRepository {
     }
   }
 
-  static insert(nome: string, capacidadeTanque: number, odometroInicial: number): boolean {
+  static insert(nome: string, capacidadeTanque: number, odometroInicial: number, combustivelAtual: 'ETANOL' | 'GASOLINA' = 'GASOLINA'): boolean {
     try {
       db.runSync(
-        'INSERT INTO veiculos (nome, capacidade_tanque, odometro_inicial) VALUES (?, ?, ?);',
-        [nome.trim(), capacidadeTanque, odometroInicial]
+        'INSERT INTO veiculos (nome, capacidade_tanque, odometro_inicial, combustivel_atual) VALUES (?, ?, ?, ?);',
+        [nome.trim(), capacidadeTanque, odometroInicial, combustivelAtual]
       );
       return true;
     } catch (error) {
@@ -33,12 +33,19 @@ export class VeiculoRepository {
     }
   }
 
-  static update(id: number, nome: string, capacidadeTanque: number, odometroInicial: number): boolean {
+  static update(id: number, nome: string, capacidadeTanque: number, odometroInicial: number, combustivelAtual?: 'ETANOL' | 'GASOLINA'): boolean {
     try {
-      db.runSync(
-        'UPDATE veiculos SET nome = ?, capacidade_tanque = ?, odometro_inicial = ? WHERE id = ?;',
-        [nome.trim(), capacidadeTanque, odometroInicial, id]
-      );
+      if (combustivelAtual) {
+        db.runSync(
+          'UPDATE veiculos SET nome = ?, capacidade_tanque = ?, odometro_inicial = ?, combustivel_atual = ? WHERE id = ?;',
+          [nome.trim(), capacidadeTanque, odometroInicial, combustivelAtual, id]
+        );
+      } else {
+        db.runSync(
+          'UPDATE veiculos SET nome = ?, capacidade_tanque = ?, odometro_inicial = ? WHERE id = ?;',
+          [nome.trim(), capacidadeTanque, odometroInicial, id]
+        );
+      }
       return true;
     } catch (error) {
       console.error('Erro ao atualizar veículo:', error);
@@ -56,10 +63,23 @@ export class VeiculoRepository {
     }
   }
 
+  static updateCombustivelAtual(id: number, combustivelAtual: 'ETANOL' | 'GASOLINA'): boolean {
+    try {
+      db.runSync(
+        'UPDATE veiculos SET combustivel_atual = ? WHERE id = ?;',
+        [combustivelAtual, id]
+      );
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar combustível do veículo:', error);
+      return false;
+    }
+  }
+
   static count(): number {
     try {
-      const result = db.getFirstSync<{ count: number }>('SELECT COUNT(*) as count FROM veiculos;');
-      return result?.count || 0;
+      const result = db.getFirstSync<{ total: number }>('SELECT COUNT(*) as total FROM veiculos;');
+      return result?.total || 0;
     } catch (error) {
       console.error('Erro ao contar veículos:', error);
       return 0;

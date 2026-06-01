@@ -8,6 +8,7 @@ export interface Veiculo {
   nome: string;
   capacidade_tanque: number;
   odometro_inicial: number;
+  combustivel_atual: 'ETANOL' | 'GASOLINA';
 }
 
 export interface Abastecimento {
