@@ -25,14 +25,18 @@ export default function TelaBomba() {
   const [combustivelAbastecido, setCombustivelAbastecido] = useState<'ETANOL' | 'GASOLINA'>('GASOLINA');
   const [isTanqueCheio, setIsTanqueCheio] = useState(true); // Padrão: Tanque Cheio
 
+  const DEFAULT_MEDIA_ETANOL = '7.5';
+  const DEFAULT_MEDIA_GASOLINA = '10.5';
+
   // Estados das médias (Preenchidos automaticamente pela IA ou manualmente)
-  const [mediaEtanol, setMediaEtanol] = useState('7.5');
-  const [mediaGasolina, setMediaGasolina] = useState('10.5');
+  const [mediaEtanol, setMediaEtanol] = useState(DEFAULT_MEDIA_ETANOL);
+  const [mediaGasolina, setMediaGasolina] = useState(DEFAULT_MEDIA_GASOLINA);
 
   // Estados de controle e resultado
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [resultadoDecisao, setResultadoDecisao] = useState('');
   const [usandoIA, setUsandoIA] = useState(false);
+  const [ultimoKmRegistrado, setUltimoKmRegistrado] = useState<number | null>(null);
 
   // Carrega a lista de veículos
   const carregarVeiculos = () => {
@@ -47,25 +51,30 @@ export default function TelaBomba() {
     carregarVeiculos();
   }, []);
 
-  // FUNÇÃO CHAVE: Roda a IA e preenche o consumo automaticamente ao trocar de carro
-  const calcularConsumoAutomatico = (carroId: string) => {
-    if (!carroId) return;
+  // FUNÇÃO CHAVE: atualiza médias de consumo sempre que trocar de veículo
+  const atualizarMediasPorVeiculo = (carroId: string) => {
+    if (!carroId) {
+      setMediaEtanol(DEFAULT_MEDIA_ETANOL);
+      setMediaGasolina(DEFAULT_MEDIA_GASOLINA);
+      setUsandoIA(false);
+      setUltimoKmRegistrado(null);
+      return;
+    }
 
     const idVeiculo = parseInt(carroId, 10);
-    
-    // Obtém consumo otimizado da IA
     const consumoOtimizado = AbastecimentoService.calcularConsumoOtimizadoPorIA(idVeiculo);
-    
+
     setMediaEtanol(consumoOtimizado.etanol.toFixed(2));
     setMediaGasolina(consumoOtimizado.gasolina.toFixed(2));
     setUsandoIA(consumoOtimizado.ativeIA);
+
+    const ultimoKm = AbastecimentoService.obterUltimoOdometro(idVeiculo);
+    setUltimoKmRegistrado(ultimoKm);
   };
 
-  // Dispara o cálculo automático toda vez que o ID do veículo selecionado mudar
+  // Dispara atualização automática toda vez que o ID do veículo selecionado mudar
   useEffect(() => {
-    if (veiculoSelecionadoId) {
-      calcularConsumoAutomatico(veiculoSelecionadoId);
-    }
+    atualizarMediasPorVeiculo(veiculoSelecionadoId);
   }, [veiculoSelecionadoId]);
 
   // Tomada de decisão econômica baseada no que está na tela
@@ -131,12 +140,13 @@ export default function TelaBomba() {
       return;
     }
 
-      Alert.alert("Sucesso", "Abastecimento salvo com sucesso!");
-      setOdometroAtual('');
-      setLitrosAbastecidos('');
-      
-      // Força a atualização das médias imediatamente após salvar o novo ponto
-      calcularConsumoAutomatico(veiculoSelecionadoId);
+    Alert.alert("Sucesso", "Abastecimento salvo com sucesso!");
+    setUltimoKmRegistrado(kmAtual);
+    setOdometroAtual('');
+    setLitrosAbastecidos('');
+    
+    // Força a atualização das médias imediatamente após salvar o novo ponto
+    atualizarMediasPorVeiculo(veiculoSelecionadoId);
   };
 
   return (
@@ -223,6 +233,13 @@ export default function TelaBomba() {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.linhaUltimoKm}>
+          <Text style={styles.labelUltimoKm}>Último km registrado:</Text>
+          <Text style={styles.valorUltimoKm}>
+            {ultimoKmRegistrado !== null ? `${ultimoKmRegistrado} km` : 'Nenhum registro anterior'}
+          </Text>
+        </View>
+
         <TextInput placeholder="KM atual do Painel" keyboardType="numeric" value={odometroAtual} onChangeText={setOdometroAtual} style={[styles.input, { marginBottom: 12 }]} />
         <TextInput placeholder="Quantos litros colocou?" keyboardType="numeric" value={litrosAbastecidos} onChangeText={setLitrosAbastecidos} style={[styles.input, { marginBottom: 12 }]} />
 
@@ -267,6 +284,9 @@ const styles = StyleSheet.create({
   textoBotaoCombustivel: { fontWeight: 'bold', color: '#3a3a3c' },
   ativoEtanol: { backgroundColor: '#e2f7e7', borderColor: '#34c759' },
   ativoGasolina: { backgroundColor: '#fff9db', borderColor: '#ffcc00' },
+  linhaUltimoKm: { marginBottom: 12, padding: 12, backgroundColor: '#f4f4f6', borderRadius: 10, borderWidth: 1, borderColor: '#e5e5ea' },
+  labelUltimoKm: { fontSize: 13, color: '#3a3a3c', marginBottom: 4 },
+  valorUltimoKm: { fontSize: 16, fontWeight: '700', color: '#1c1c1e' },
   cardFeedback: { padding: 14, borderRadius: 10, marginBottom: 15, borderWidth: 1 },
   bgNormal: { backgroundColor: '#e5e5ea', borderColor: '#d1d1d6' },
   bgIA: { backgroundColor: '#f3f2ff', borderColor: '#d3cfff' },

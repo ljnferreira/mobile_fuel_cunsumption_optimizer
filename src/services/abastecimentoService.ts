@@ -57,11 +57,15 @@ export class AbastecimentoService {
     const predicaoEtanol = predizerConsumoKmL(histEtanol);
     const predicaoGasolina = predizerConsumoKmL(histGasolina);
 
+    const mediasHistoricas = this.carregarMediasConsumoPorVeiculo(veiculoId);
+    const mediaEtanolBase = mediasHistoricas.get('ETANOL') ?? 7.5;
+    const mediaGasolinaBase = mediasHistoricas.get('GASOLINA') ?? 10.5;
+
     const ativeIA = predicaoEtanol > 0 && predicaoGasolina > 0;
 
     return {
-      etanol: predicaoEtanol > 0 ? predicaoEtanol : 7.5,
-      gasolina: predicaoGasolina > 0 ? predicaoGasolina : 10.5,
+      etanol: ativeIA ? predicaoEtanol : mediaEtanolBase,
+      gasolina: ativeIA ? predicaoGasolina : mediaGasolinaBase,
       ativeIA,
     };
   }
