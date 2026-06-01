@@ -165,11 +165,19 @@ export class AbastecimentoService {
     return AbastecimentoRepository.findHistoricoCompleto();
   }
 
+  static carregarHistoricoCompletoPorVeiculo(veiculoId: number): AbastecimentoItem[] {
+    return AbastecimentoRepository.findHistoricoCompletoPorVeiculo(veiculoId);
+  }
+
   /**
    * Carrega métricas analíticas por tipo de combustível
    */
   static carregarMetricasAnaliticas(): RelatorioConsumo[] {
     return AbastecimentoRepository.findMetricasAnaliticas();
+  }
+
+  static carregarMetricasAnaliticasPorVeiculo(veiculoId: number): RelatorioConsumo[] {
+    return AbastecimentoRepository.findMetricasAnaliticasPorVeiculo(veiculoId);
   }
 
   /**

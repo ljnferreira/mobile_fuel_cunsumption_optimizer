@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,23 +7,31 @@ import {
   TouchableOpacity, 
   Alert
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from 'expo-router'; // Gancho nativo do Expo Router
 import { 
   AbastecimentoService, 
   type RelatorioConsumo, 
   type AbastecimentoItem 
 } from '../../src/services/abastecimentoService';
+import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
 
 
 export default function TelaRelatorios() {
+  const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  const [veiculoSelecionadoId, setVeiculoSelecionadoId] = useState<string>('');
   const [metricas, setMetricas] = useState<RelatorioConsumo[]>([]);
   const [historico, setHistorico] = useState<AbastecimentoItem[]>([]);
 
-  const carregarDadosAnaliticos = () => {
-    const metricas = AbastecimentoService.carregarMetricasAnaliticas();
+  const carregarDadosAnaliticos = (veiculoId: number | null) => {
+    const metricas = veiculoId
+      ? AbastecimentoService.carregarMetricasAnaliticasPorVeiculo(veiculoId)
+      : AbastecimentoService.carregarMetricasAnaliticas();
     setMetricas(metricas);
     
-    const historico = AbastecimentoService.carregarHistoricoCompleto();
+    const historico = veiculoId
+      ? AbastecimentoService.carregarHistoricoCompletoPorVeiculo(veiculoId)
+      : AbastecimentoService.carregarHistoricoCompleto();
     setHistorico(historico);
   };
 
@@ -31,9 +39,19 @@ export default function TelaRelatorios() {
   // sempre que o usuário alternar para a aba de relatórios no emulador
   useFocusEffect(
     useCallback(() => {
-      carregarDadosAnaliticos();
+      const veiculosCarregados = VeiculoService.carregarTodos();
+      setVeiculos(veiculosCarregados);
+      const idInicial = veiculosCarregados.length > 0 ? veiculosCarregados[0].id : null;
+      setVeiculoSelecionadoId(idInicial ? idInicial.toString() : '');
+      carregarDadosAnaliticos(idInicial);
     }, [])
   );
+
+  useEffect(() => {
+    if (veiculoSelecionadoId) {
+      carregarDadosAnaliticos(parseInt(veiculoSelecionadoId, 10));
+    }
+  }, [veiculoSelecionadoId]);
 
   const confirmarExclusao = (id: number) => {
     Alert.alert(
@@ -53,7 +71,7 @@ export default function TelaRelatorios() {
       return;
     }
 
-    carregarDadosAnaliticos();
+    carregarDadosAnaliticos(veiculoSelecionadoId ? parseInt(veiculoSelecionadoId, 10) : null);
   };
 
   const obterMetrica = (tipo: 'ETANOL' | 'GASOLINA') => {
@@ -71,6 +89,21 @@ export default function TelaRelatorios() {
   return (
     <View style={styles.container}>
       <Text style={styles.cabecalho}>Análise de Dados & Eficiência</Text>
+
+      <View style={styles.secaoFiltro}>
+        <Text style={styles.rotuloFiltro}>Selecione o veículo</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={veiculoSelecionadoId}
+            onValueChange={(itemValue) => setVeiculoSelecionadoId(itemValue)}
+            style={styles.picker}
+          >
+            {veiculos.map((veiculo) => (
+              <Picker.Item key={veiculo.id} label={veiculo.nome} value={veiculo.id.toString()} />
+            ))}
+          </Picker>
+        </View>
+      </View>
 
       {/* Painel Superior de Indicadores */}
       <View style={styles.containerCards}>
@@ -178,6 +211,10 @@ const styles = StyleSheet.create({
   divisor: { height: 1, backgroundColor: '#f2f2f7', marginVertical: 8 },
   subMetrica: { fontSize: 11, color: '#3a3a3c', marginTop: 2 },
   infoNota: { fontSize: 11, color: '#8e8e93', fontStyle: 'italic', marginBottom: 25 },
+  secaoFiltro: { marginBottom: 18 },
+  rotuloFiltro: { fontSize: 14, fontWeight: '600', color: '#3a3a3c', marginBottom: 8 },
+  pickerContainer: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5ea', borderRadius: 10, overflow: 'hidden' },
+  picker: { height: 50, width: '100%' },
   tituloLista: { fontSize: 18, fontWeight: 'bold', color: '#1c1c1e', marginBottom: 12 },
   cardHistorico: { backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e5e5ea' },
   linhaPrincipal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
