@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 // Abre ou cria o banco de dados local
-export const db = SQLite.openDatabaseSync('smartfuel_v2.db');
+export const db = SQLite.openDatabaseSync('smartfuel_v3.db');
 
 export const inicializarBanco = () => {
   // Tabela de Usuário
@@ -18,7 +18,8 @@ export const inicializarBanco = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
       capacidade_tanque REAL NOT NULL,
-      odometro_inicial REAL NOT NULL
+      odometro_inicial REAL NOT NULL,
+      combustivel_atual TEXT DEFAULT 'GASOLINA' CHECK(combustivel_atual IN ('ETANOL', 'GASOLINA'))
     );
   `);
 
@@ -44,5 +45,13 @@ export const inicializarBanco = () => {
 
   if (!temTanqueCheio) {
     db.execSync(`ALTER TABLE abastecimentos ADD COLUMN tanque_cheio INTEGER DEFAULT 1;`);
+  }
+
+  // Migração de esquema: adiciona coluna combustivel_atual em veiculos existentes
+  const colunasVeiculos = db.getAllSync<{ name: string }>("PRAGMA table_info(veiculos);");
+  const temCombustivelAtual = colunasVeiculos.some(col => col.name === 'combustivel_atual');
+
+  if (!temCombustivelAtual) {
+    db.execSync(`ALTER TABLE veiculos ADD COLUMN combustivel_atual TEXT DEFAULT 'GASOLINA' CHECK(combustivel_atual IN ('ETANOL', 'GASOLINA'));`);
   }
 };
