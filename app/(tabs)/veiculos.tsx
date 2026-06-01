@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { VeiculoService, type Veiculo } from '../../src/services/veiculoService';
 import VeiculoForm from '../../components/VeiculoForm';
 
@@ -31,6 +31,28 @@ export default function TelaVeiculos() {
     return true;
   };
 
+  const confirmarExclusao = (id: number, nome: string) => {
+    Alert.alert(
+      'Excluir veículo',
+      `Deseja excluir ${nome} e todo o seu histórico? Essa ação não pode ser desfeita.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => excluirVeiculo(id) }
+      ]
+    );
+  };
+
+  const excluirVeiculo = (id: number) => {
+    const resultado = VeiculoService.deletar(id);
+    if (!resultado.sucesso) {
+      Alert.alert('Erro', resultado.erro || 'Não foi possível excluir o veículo.');
+      return;
+    }
+
+    Alert.alert('Sucesso', 'Veículo e histórico excluídos com sucesso.');
+    carregarVeiculos();
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.cabecalho}>Garagem Virtual (1 a N Carros)</Text>
@@ -54,8 +76,15 @@ export default function TelaVeiculos() {
               <Text style={styles.nomeVeiculo}>{item.nome}</Text>
               <Text style={styles.detalheVeiculo}>Tanque: {item.capacidade_tanque}L | Km Inicial: {item.odometro_inicial} km</Text>
             </View>
-            <View style={styles.badgeFlex}>
-              <Text style={styles.textoBadge}>FLEX</Text>
+            <View style={styles.actionsContainer}>
+              <View style={styles.badgeFlex}>
+                <Text style={styles.textoBadge}>FLEX</Text>
+              </View>
+              {veiculos.length > 1 && (
+                <TouchableOpacity style={styles.botaoExcluir} onPress={() => confirmarExclusao(item.id, item.nome)}>
+                  <Text style={styles.textoExcluir}>Excluir</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}
@@ -81,7 +110,10 @@ const styles = StyleSheet.create({
   cardVeiculo: { backgroundColor: '#fff', padding: 16, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#e5e5ea' },
   nomeVeiculo: { fontSize: 16, fontWeight: 'bold', color: '#1c1c1e' },
   detalheVeiculo: { fontSize: 13, color: '#8e8e93', marginTop: 4 },
-  badgeFlex: { backgroundColor: '#34c759', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  actionsContainer: { alignItems: 'flex-end' },
+  badgeFlex: { backgroundColor: '#34c759', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginBottom: 8 },
   textoBadge: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  botaoExcluir: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ff3b30', borderRadius: 8 },
+  textoExcluir: { color: '#fff', fontWeight: '700', fontSize: 12 },
   listaVazia: { textAlign: 'center', color: '#8e8e93', marginTop: 20, fontSize: 14 }
 });

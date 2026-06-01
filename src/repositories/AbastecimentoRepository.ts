@@ -154,6 +154,16 @@ export class AbastecimentoRepository {
     }
   }
 
+  static deleteByVeiculo(veiculoId: number): boolean {
+    try {
+      db.runSync('DELETE FROM abastecimentos WHERE veiculo_id = ?;', [veiculoId]);
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar histórico de abastecimentos do veículo:', error);
+      return false;
+    }
+  }
+
   static delete(id: number): boolean {
     try {
       db.runSync('DELETE FROM abastecimentos WHERE id = ?;', [id]);
