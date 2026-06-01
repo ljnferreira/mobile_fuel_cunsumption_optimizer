@@ -137,6 +137,13 @@ export class AbastecimentoService {
       return { sucesso: false, erro: 'Volume abastecido deve ser positivo' };
     }
 
+    // Verificar se há mudança de combustível
+    const ultimoAbastecimento = AbastecimentoRepository.findUltimoAbastecimentoPorVeiculo(dados.veiculoId);
+    if (ultimoAbastecimento && ultimoAbastecimento.tipo_combustivel !== dados.tipoCombustivel) {
+      // Atualizar o combustível_atual do veículo
+      VeiculoRepository.updateCombustivelAtual(dados.veiculoId, dados.tipoCombustivel);
+    }
+
     const dataHoje = new Date().toLocaleDateString('pt-BR');
     const tanqueCheioInt = dados.tanqueCheio ? 1 : 0;
 
