@@ -6,67 +6,23 @@ import {
   StyleSheet 
 } from 'react-native';
 import { useFocusEffect } from 'expo-router'; // Gancho nativo do Expo Router
-import { db } from '../../src/database/database';
+import { 
+  AbastecimentoService, 
+  type RelatorioConsumo, 
+  type AbastecimentoItem 
+} from '../../src/services/abastecimentoService';
 
-interface RelatorioConsumo {
-  tipo_combustivel: string;
-  media_km_litro: number;
-  total_litros: number;
-  gasto_total: number;
-}
-
-interface AbastecimentoItem {
-  id: number;
-  carro_nome: string;
-  tipo_combustivel: string;
-  distancia_percorrida: number;
-  litros_abastecidos: number;
-  preco_por_litro: number;
-  data_registro: string;
-  tanque_cheio: number;
-}
 
 export default function TelaRelatorios() {
   const [metricas, setMetricas] = useState<RelatorioConsumo[]>([]);
   const [historico, setHistorico] = useState<AbastecimentoItem[]>([]);
 
   const carregarDadosAnaliticos = () => {
-    try {
-      // 1. ANÁLISE DE DADOS: Média baseada apenas em tanque cheio
-      const queryMetricas = `
-        SELECT 
-          tipo_combustivel,
-          AVG(distancia_percorrida / litros_abastecidos) as media_km_litro,
-          SUM(litros_abastecidos) as total_litros,
-          SUM(litros_abastecidos * preco_por_litro) as gasto_total
-        FROM abastecimentos
-        WHERE tanque_cheio = 1
-        GROUP BY tipo_combustivel;
-      `;
-      const dadosMetricas = db.getAllSync<RelatorioConsumo>(queryMetricas);
-      setMetricas(dadosMetricas);
-
-      // 2. AUDITORIA: Histórico completo com os nomes dos veículos
-      const queryHistorico = `
-        SELECT 
-          a.id,
-          v.nome as carro_nome,
-          a.tipo_combustivel,
-          a.distancia_percorrida,
-          a.litros_abastecidos,
-          a.preco_por_litro,
-          a.data_registro,
-          a.tanque_cheio
-        FROM abastecimentos a
-        JOIN veiculos v ON a.veiculo_id = v.id
-        ORDER BY a.id DESC;
-      `;
-      const dadosHistorico = db.getAllSync<AbastecimentoItem>(queryHistorico);
-      setHistorico(dadosHistorico);
-
-    } catch (error) {
-      console.error("Erro ao processar análise de dados:", error);
-    }
+    const metricas = AbastecimentoService.carregarMetricasAnaliticas();
+    setMetricas(metricas);
+    
+    const historico = AbastecimentoService.carregarHistoricoCompleto();
+    setHistorico(historico);
   };
 
   // O useFocusEffect combinado com o useCallback garante o disparo seguro do SQL
