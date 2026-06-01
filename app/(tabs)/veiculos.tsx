@@ -19,8 +19,8 @@ export default function TelaVeiculos() {
     carregarVeiculos();
   }, []);
 
-  const cadastrarVeiculo = (nome: string, capacidade: number, odometro: number): boolean => {
-    const resultado = VeiculoService.cadastrar(nome, capacidade, odometro);
+  const cadastrarVeiculo = (nome: string, capacidade: number, odometro: number, combustivel: 'ETANOL' | 'GASOLINA'): boolean => {
+    const resultado = VeiculoService.cadastrar(nome, capacidade, odometro, combustivel);
 
     if (!resultado.sucesso) {
       Alert.alert('Erro', resultado.erro || 'Não foi possível salvar o veículo no banco offline.');
