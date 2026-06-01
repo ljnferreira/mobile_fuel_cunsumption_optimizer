@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">=2eas build --platform android --profile preview0.0.0"
+    "version": ">=20.0.0"
   },
   "build": {
     "development": {
