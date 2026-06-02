@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   secaoFiltro: { marginBottom: 18 },
   rotuloFiltro: { fontSize: 14, fontWeight: '600', color: '#3a3a3c', marginBottom: 8 },
   pickerContainer: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5ea', borderRadius: 10, overflow: 'hidden' },
-  picker: { height: 50, width: '100%' },
+  picker: { height: 50, width: '100%', color: '#1c1c1e' },
   tituloLista: { fontSize: 18, fontWeight: 'bold', color: '#1c1c1e', marginBottom: 12 },
   cardHistorico: { backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e5e5ea' },
   linhaPrincipal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },

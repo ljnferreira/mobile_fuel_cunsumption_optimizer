@@ -340,7 +340,6 @@ export default function TelaBomba() {
             onChangeText={setLitrosAbastecidos}
             style={[styles.input, { marginBottom: 12 }]}
           />
-          /
         </View>
         {/* Chave de Auditoria: Tanque Cheio */}
         <View style={styles.rowSwitch}>
@@ -395,7 +394,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: "hidden",
   },
-  picker: { height: 50, width: "100%" },
+  picker: { height: 50, width: "100%", color: "#1c1c1e" },
   avisoNenhumCarro: { padding: 15, color: "#8e8e93", fontSize: 13 },
   rowInputs: {
     flexDirection: "row",
