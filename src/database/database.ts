@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 // Abre ou cria o banco de dados local
-export const db = SQLite.openDatabaseSync('smartfuel_v3.db');
+export const db = SQLite.openDatabaseSync('smartfuel_v4.db');
 
 export const inicializarBanco = () => {
   // Tabela de Usuário
