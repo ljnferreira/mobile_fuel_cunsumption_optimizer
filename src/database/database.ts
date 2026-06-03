@@ -1,6 +1,6 @@
 import * as SQLite from "expo-sqlite";
 
-export const DATABASE_NAME = "smartfuel_v5.db";
+export const DATABASE_NAME = "smartfuel_v6.db";
 
 // Abre ou cria o banco de dados local
 export const db: SQLite.SQLiteDatabase = SQLite.openDatabaseSync(DATABASE_NAME);
