@@ -1,11 +1,13 @@
-import * as SQLite from 'expo-sqlite';
+import * as SQLite from "expo-sqlite";
+
+export const DATABASE_NAME = "smartfuel_v5.db";
 
 // Abre ou cria o banco de dados local
-export const db = SQLite.openDatabaseSync('smartfuel_v4.db');
+export const db: SQLite.SQLiteDatabase = SQLite.openDatabaseSync(DATABASE_NAME);
 
-export const inicializarBanco = () => {
+export const inicializarBanco = async (database: SQLite.SQLiteDatabase) => {
   // Tabela de Usuário
-  db.execSync(`
+  database.execSync(`
     CREATE TABLE IF NOT EXISTS usuario (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL
@@ -13,7 +15,7 @@ export const inicializarBanco = () => {
   `);
 
   // Tabela de Veículos
-  db.execSync(`
+  database.execSync(`
     CREATE TABLE IF NOT EXISTS veiculos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
@@ -24,7 +26,7 @@ export const inicializarBanco = () => {
   `);
 
   // Tabela de Abastecimentos (Guarda os pontos X, Y da IA)
-  db.execSync(`
+  database.execSync(`
     CREATE TABLE IF NOT EXISTS abastecimentos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       veiculo_id INTEGER NOT NULL,
@@ -40,18 +42,30 @@ export const inicializarBanco = () => {
   `);
 
   // Migração de esquema: adiciona coluna em bancos existentes que ainda não possuem `tanque_cheio`
-  const colunasAbastecimentos = db.getAllSync<{ name: string }>("PRAGMA table_info(abastecimentos);");
-  const temTanqueCheio = colunasAbastecimentos.some(col => col.name === 'tanque_cheio');
+  const colunasAbastecimentos = database.getAllSync<{ name: string }>(
+    "PRAGMA table_info(abastecimentos);",
+  );
+  const temTanqueCheio = colunasAbastecimentos.some(
+    (col) => col.name === "tanque_cheio",
+  );
 
   if (!temTanqueCheio) {
-    db.execSync(`ALTER TABLE abastecimentos ADD COLUMN tanque_cheio INTEGER DEFAULT 1;`);
+    database.execSync(
+      `ALTER TABLE abastecimentos ADD COLUMN tanque_cheio INTEGER DEFAULT 1;`,
+    );
   }
 
   // Migração de esquema: adiciona coluna combustivel_atual em veiculos existentes
-  const colunasVeiculos = db.getAllSync<{ name: string }>("PRAGMA table_info(veiculos);");
-  const temCombustivelAtual = colunasVeiculos.some(col => col.name === 'combustivel_atual');
+  const colunasVeiculos = database.getAllSync<{ name: string }>(
+    "PRAGMA table_info(veiculos);",
+  );
+  const temCombustivelAtual = colunasVeiculos.some(
+    (col) => col.name === "combustivel_atual",
+  );
 
   if (!temCombustivelAtual) {
-    db.execSync(`ALTER TABLE veiculos ADD COLUMN combustivel_atual TEXT DEFAULT 'GASOLINA' CHECK(combustivel_atual IN ('ETANOL', 'GASOLINA'));`);
+    database.execSync(
+      `ALTER TABLE veiculos ADD COLUMN combustivel_atual TEXT DEFAULT 'GASOLINA' CHECK(combustivel_atual IN ('ETANOL', 'GASOLINA'));`,
+    );
   }
 };
