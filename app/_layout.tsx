@@ -1,8 +1,9 @@
 import { useFonts } from "expo-font";
+import { SQLiteProvider } from "expo-sqlite";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
-import { inicializarBanco } from "../src/database/database";
+import { DATABASE_NAME, inicializarBanco } from "../src/database/database";
 import { VeiculoService } from "../src/services/veiculoService";
 import { UsuarioService } from "../src/services/usuarioService";
 import "react-native-reanimated";
@@ -35,13 +36,14 @@ export default function RootLayout() {
 
   useEffect(() => {
     try {
-      inicializarBanco();
       const totalVeiculos = VeiculoService.contarTotal();
       const totalUsuarios = UsuarioService.contarTotal();
-      setInitialRouteName(totalVeiculos === 0 || totalUsuarios === 0 ? 'onboarding' : '(tabs)');
+      setInitialRouteName(
+        totalVeiculos === 0 || totalUsuarios === 0 ? "onboarding" : "(tabs)",
+      );
     } catch (error) {
       console.error("Erro na carga inicial do banco offline:", error);
-      setInitialRouteName('(tabs)');
+      setInitialRouteName("(tabs)");
     }
   }, []);
 
@@ -55,7 +57,11 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav initialRouteName={initialRouteName} />;
+  return (
+    <SQLiteProvider databaseName={DATABASE_NAME} onInit={inicializarBanco}>
+      <RootLayoutNav initialRouteName={initialRouteName} />
+    </SQLiteProvider>
+  );
 }
 
 function RootLayoutNav({ initialRouteName }: { initialRouteName: string }) {
